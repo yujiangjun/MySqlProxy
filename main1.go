@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func main() {
+func main1() {
 	var buf [512]byte
 	addr, err := net.ResolveTCPAddr("tcp", "192.168.132.129:3306")
 	result := checkError(err)
