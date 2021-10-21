@@ -1,18 +1,18 @@
 package jdbc
 
 type MetaService interface {
-	getMeta()
+	GetMeta() Meta
 }
 
 type Meta struct {
-	username string
-	password string
-	url      string
+	Username string
+	Password string
+	Url      string
 }
 
-func (meta Meta) call() Meta {
-	meta.username = "root"
-	meta.password = "123456"
-	meta.url = "tcp(192.168.136.136:3306)/test?charset=utf8"
+func (meta Meta) GetMeta() Meta {
+	meta.Username = "root"
+	meta.Password = "123456"
+	meta.Url = "tcp(192.168.211.130:3306)/?charset=utf8"
 	return meta
 }
