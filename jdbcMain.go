@@ -1,9 +1,10 @@
 package main
 
 import (
-	"MySqlProxy/jdbc"
+
 	log "github.com/sirupsen/logrus"
 	"go/types"
+	"mySqlProxy/jdbc"
 )
 
 func main() {

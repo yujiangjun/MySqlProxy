@@ -1,4 +1,4 @@
-module MySqlProxy
+module mySqlProxy
 
 go 1.16
 
