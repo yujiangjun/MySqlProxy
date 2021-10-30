@@ -48,5 +48,5 @@ func GetTables(ctx *gin.Context) {
 	for _,value:=range tables{
 		log.Info(value)
 	}
-	ctx.Data(http.StatusOK,"text/plain",[]byte(fmt.Sprintf("get Success")))
+	ctx.JSON(http.StatusOK,tables)
 }
