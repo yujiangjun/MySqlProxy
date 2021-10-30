@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"mySqlProxy/rest/handler"
 	"net/http"
 	"os"
 )
@@ -21,6 +22,9 @@ func main() {
 		}
 		context.Data(http.StatusOK,"text/plain",[]byte(fmt.Sprintf("get Success!%s\n",value)))
 	})
+
+	router.GET("/getTable",handler.GetContext)
+	router.GET("/getTables",handler.GetTables)
 	err := http.ListenAndServe(":9999", router)
 	if err != nil {
 		log.Error("服务器发生错误",err)
