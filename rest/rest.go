@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"mySqlProxy/config"
 	"mySqlProxy/rest/handler"
 	"net/http"
 	"os"
@@ -12,6 +13,7 @@ import (
 func main() {
 	gin.SetMode(gin.DebugMode)
 	router:=gin.Default()
+	router.Use(config.Cors())
 	router.Use(func(context *gin.Context) {
 		log.Info("this is a middleware")
 	})
@@ -25,6 +27,7 @@ func main() {
 
 	router.GET("/getTable",handler.GetContext)
 	router.GET("/getTables",handler.GetTables)
+	router.GET("/login",handler.Login)
 	err := http.ListenAndServe(":9999", router)
 	if err != nil {
 		log.Error("服务器发生错误",err)

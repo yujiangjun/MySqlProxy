@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"mySqlProxy/jdbc"
 	"net/http"
+	"strings"
 )
 
 func GetContext( context *gin.Context){
@@ -49,4 +50,23 @@ func GetTables(ctx *gin.Context) {
 		log.Info(value)
 	}
 	ctx.JSON(http.StatusOK,tables)
+}
+
+func Login(ctx *gin.Context) {
+	userName := ctx.Query("userName")
+	password := ctx.Query("password")
+	result:= make(map[string]string)
+	if  strings.EqualFold(userName,"admin") && strings.EqualFold(password,"123"){
+		result["code"]="200"
+		result["msg"]="成功"
+		ctx.JSON(http.StatusOK,gin.H{
+			"code":200,
+			"msg":"登录成功",
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK,gin.H{
+		"code":301,
+		"msg":"登录失败",
+	})
 }
