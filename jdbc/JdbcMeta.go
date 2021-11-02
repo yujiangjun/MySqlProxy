@@ -12,7 +12,7 @@ type Meta struct {
 
 func (meta Meta) GetMeta() Meta {
 	meta.Username = "root"
-	meta.Password = "123456"
-	meta.Url = "tcp(192.168.211.130:3306)/raytine?charset=utf8&parseTime=true"
+	meta.Password = "83baad54"
+	meta.Url = "tcp(49.234.25.117:33060)/daxin?charset=utf8&parseTime=true"
 	return meta
 }
