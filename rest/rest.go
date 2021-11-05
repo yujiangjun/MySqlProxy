@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -11,6 +12,11 @@ import (
 )
 
 func main() {
+	var ctx=context.Background()
+	rdb := config.NewRedisHelper()
+	if _,err:=rdb.Ping(ctx).Result();err!=nil {
+		log.Error("redis链接失败.",err.Error())
+	}
 	gin.SetMode(gin.DebugMode)
 	router:=gin.Default()
 	router.Use(config.Cors())
@@ -28,6 +34,9 @@ func main() {
 	router.GET("/getTable",handler.GetContext)
 	router.GET("/getTables",handler.GetTables)
 	router.GET("/login",handler.Login)
+	router.POST("/ping",handler.DataBasePing)
+	router.POST("/createConn",handler.CreateConnect)
+	router.GET("/getRedisCache",handler.GetRedisCache)
 	err := http.ListenAndServe(":9999", router)
 	if err != nil {
 		log.Error("服务器发生错误",err)
