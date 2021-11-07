@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"mySqlProxy/config"
+	"mySqlProxy/global"
 	"mySqlProxy/jdbc"
 	"mySqlProxy/jdbc/dto"
 	"mySqlProxy/jdbc/entity"
@@ -147,7 +147,7 @@ func CreateConnect(ctx *gin.Context) {
 	metaService := new(jdbc.Meta)
 
 	log.Info("记录链接信息",metaService.GetMeta())
-	connect := jdbc.GetConnection(metaService.GetMeta())
+	connect := global.GetGlobal().SqlConnect
 	dataConnect := entity.DataConnect{
 		DbName:   "test",
 		DbType:   0,
@@ -170,7 +170,7 @@ func CreateConnect(ctx *gin.Context) {
 	}
 	log.Info("保存数据库信息成功。")
 
-	redisHelper := config.GetRedisHelper()
+	redisHelper := global.GetGlobal().RedisConnect
 	json, _ := json.Marshal(meta)
 
 	result, err := redisHelper.Set(context.Background(), fmt.Sprintf("datasource_%d",dataConnect.Id), json, 10*time.Minute).Result()
@@ -188,7 +188,7 @@ func CreateConnect(ctx *gin.Context) {
 }
 
 func GetRedisCache(ctx *gin.Context)  {
-	redis := config.GetRedisHelper()
+	redis := global.GetGlobal().RedisConnect
 
 	result, err := redis.Get(context.Background(), "datasource*").Result()
 	if err!=nil {

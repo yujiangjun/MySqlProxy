@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-func main() {
+func main1() {
 	var ctx=context.Background()
 	rdb := config.NewRedisHelper()
 	if _,err:=rdb.Ping(ctx).Result();err!=nil {
@@ -19,10 +19,6 @@ func main() {
 	}
 	gin.SetMode(gin.DebugMode)
 	router:=gin.Default()
-	router.Use(config.Cors())
-	router.Use(func(context *gin.Context) {
-		log.Info("this is a middleware")
-	})
 	router.GET("/test", func(context *gin.Context) {
 		value, exist := context.GetQuery("name")
 		if !exist {
@@ -31,16 +27,27 @@ func main() {
 		context.Data(http.StatusOK,"text/plain",[]byte(fmt.Sprintf("get Success!%s\n",value)))
 	})
 
-	router.GET("/getTable",handler.GetContext)
-	router.GET("/getTables",handler.GetTables)
-	router.GET("/login",handler.Login)
-	router.POST("/ping",handler.DataBasePing)
-	router.POST("/createConn",handler.CreateConnect)
-	router.GET("/getRedisCache",handler.GetRedisCache)
+
 	err := http.ListenAndServe(":9999", router)
 	if err != nil {
 		log.Error("服务器发生错误",err)
 		os.Exit(-1)
 		return
 	}
+}
+
+func InitRouter(engine *gin.Engine) *gin.Engine {
+	engine.Use(config.Cors())
+	engine.Use(func(context *gin.Context) {
+		log.Info("this is a middleware")
+	})
+	group := engine.Group("/")
+	group.GET("/getTable",handler.GetContext)
+	group.GET("/getTables",handler.GetTables)
+	group.GET("/login",handler.Login)
+	group.POST("/ping",handler.DataBasePing)
+	group.POST("/createConn",handler.CreateConnect)
+	group.GET("/getRedisCache",handler.GetRedisCache)
+
+	return engine
 }
