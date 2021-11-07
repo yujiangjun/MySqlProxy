@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 )
 
 var connectionMaps = make(map[int]*gorm.DB)
@@ -26,22 +25,17 @@ func GetContext( context *gin.Context){
 		return
 	}
 	log.Info("databaseId:%s",databaseId)
-	//metaService := new(jdbc.Meta)
-	//meta:=metaService.GetMeta()
-	//connection:= jdbc.GetConnection(meta)
 	id, _ := strconv.Atoi(databaseId)
 	log.Info(connectionMaps[id])
-	var tables []jdbc.Field
-	err := connectionMaps[id].Raw( "SELECT COLUMN_NAME fName,column_comment fDesc,DATA_TYPE dataType, IS_NULLABLE isNull,IFNULL(CHARACTER_MAXIMUM_LENGTH,0) sLength FROM information_schema.columns where TABLE_SCHEMA='raytine' and TABLE_NAME='apply_record'").Scan(&tables)
+	var tables []map[string]interface{}
+	err := connectionMaps[id].Raw( "SELECT COLUMN_NAME fName,column_comment fDesc,DATA_TYPE dataType, IS_NULLABLE isNull,IFNULL(CHARACTER_MAXIMUM_LENGTH,0) sLength FROM information_schema.columns ").Scan(&tables)
 	if err!=nil {
 		log.Error("查询失败",err)
 	}
-	log.Info("select success",tables)
-	for _,value:=range tables{
-		log.Info(value)
-	}
-	context.Data(http.StatusOK,"text/plain",[]byte(fmt.Sprintf("get Success!")))
+	context.JSON(http.StatusOK,tables)
 }
+
+
 
 func GetTables(ctx *gin.Context) {
 	databaseId, ok := ctx.GetQuery("databaseId")
@@ -49,18 +43,17 @@ func GetTables(ctx *gin.Context) {
 		log.Error("为获取到参数schema")
 		return
 	}
-	//metaService := new(jdbc.Meta)
-	//meta := metaService.GetMeta()
-	//db := jdbc.GetConnection(meta)
 	id, _ := strconv.Atoi(databaseId)
 
-	var tables []jdbc.Tables
+	//var tables *[]jdbc.Tables
+	//maps :=[...]map[string]interface{}
+	conn:= connectionMaps[id]
+	log.Info("链接信息",conn)
+	var tables []map[string]interface{}
 	err := connectionMaps[id].Raw("select TABLE_CATALOG,TABLE_SCHEMA,TABLE_NAME,TABLE_TYPE,ENGINE,VERSION,ROW_FORMAT,TABLE_ROWS,DATA_LENGTH,CREATE_TIME,UPDATE_TIME,TABLE_COLLATION,TABLE_COMMENT from information_schema.TABLES").Scan(&tables)
+	//err := connectionMaps[id].Raw("select TABLE_CATALOG,TABLE_SCHEMA,TABLE_NAME from information_schema.TABLES").Scan(&tables)
 	if err!=nil {
 		log.Error("查询发生异常.",err)
-	}
-	for _,value:=range tables{
-		log.Info(value)
 	}
 	ctx.JSON(http.StatusOK,tables)
 }
@@ -102,12 +95,12 @@ func DataBasePing(ctx *gin.Context) {
 
 	log.Info("参数:",dataSource)
 	log.Info("拼接的url:",fmt.Sprintf("tcp(%s:%d)/%s?charset=utf8&parseTime=true",dataSource.Host,dataSource.Port,dataSource.Schema))
-	meta := jdbc.Meta{
+	meta := jdbc.MyJdbc{
 		Url:      fmt.Sprintf("tcp(%s:%d)/%s?charset=utf8&parseTime=true",dataSource.Host,dataSource.Port,dataSource.Schema),
 		Username: dataSource.UserName,
 		Password: dataSource.Password,
 	}
-	connection:= jdbc.GetConnection(meta)
+	connection:=meta.GetConnection()
 	db,_ := connection.DB()
 	err := db.Ping()
 	if err !=nil {
@@ -128,12 +121,12 @@ func CreateConnect(ctx *gin.Context) {
 	dataSource := dto.DataSource{}
 	ctx.BindJSON(&dataSource)
 	log.Info("dataSource:",dataSource)
-	meta := jdbc.Meta{
-		Url:      fmt.Sprintf("tcp(%s:%d)/%s?charset=utf8&parseTime=true", dataSource.Host, dataSource.Port, dataSource.Schema),
+	myJdbc := jdbc.MyJdbc{
 		Username: dataSource.UserName,
 		Password: dataSource.Password,
+		Url:      fmt.Sprintf("tcp(%s:%d)/%s?charset=utf8&parseTime=true", dataSource.Host, dataSource.Port, dataSource.Schema),
 	}
-	connection := jdbc.GetConnection(meta)
+	connection := myJdbc.GetConnection()
 	db, _ := connection.DB()
 	err2 := db.Ping()
 	if err2 !=nil{
@@ -151,9 +144,9 @@ func CreateConnect(ctx *gin.Context) {
 	dataConnect := entity.DataConnect{
 		DbName:   "test",
 		DbType:   0,
-		Url:      meta.Url,
-		UserName: meta.Username,
-		Password: meta.Password,
+		Url:      myJdbc.Url,
+		UserName: myJdbc.Username,
+		Password: myJdbc.Password,
 	}
 	//临时指定表明，默认是蛇形复数形式如这里是data_connects.
 	create := connect.Table("data_connect").Create(&dataConnect)
@@ -171,9 +164,9 @@ func CreateConnect(ctx *gin.Context) {
 	log.Info("保存数据库信息成功。")
 
 	redisHelper := global.GetGlobal().RedisConnect
-	json, _ := json.Marshal(meta)
+	json, _ := json.Marshal(myJdbc)
 
-	result, err := redisHelper.Set(context.Background(), fmt.Sprintf("datasource_%d",dataConnect.Id), json, 10*time.Minute).Result()
+	result, err := redisHelper.Set(context.Background(), fmt.Sprintf("datasource_%d",dataConnect.Id), json, 0).Result()
 	if err!=nil {
 		log.Error("缓存到数据失败",err)
 		return
@@ -199,4 +192,25 @@ func GetRedisCache(ctx *gin.Context)  {
 		"msg":"ok",
 		"data":result,
 	})
+}
+
+func InitLoadingConnection2Redis() {
+	db:= global.GetGlobal().SqlConnect
+	redisDb := global.GetGlobal().RedisConnect
+	var dataConnect []*entity.DataConnect
+	db.Table("data_connect").Find(&dataConnect)
+	for _,value := range dataConnect{
+
+		connectionMaps[value.Id]=jdbc.MyJdbc{
+			Username: value.UserName,
+			Password: value.Password,
+			Url:      value.Url,
+		}.GetConnection()
+		json, _ := json.Marshal(value)
+		err := redisDb.Set(context.Background(), fmt.Sprintf("datasource_%d", value.Id), json, 0).Err()
+		if err!=nil {
+			log.Error("存入缓存缓存错误",err)
+		}
+	}
+	log.Info("加载链接到缓存成功")
 }

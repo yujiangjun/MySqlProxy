@@ -26,7 +26,7 @@ func Cors() gin.HandlerFunc {
 		}
 		//defer func() {
 		//	if err := recover(); err != nil {
-		//		log.Error("Panic info is:%v",err)
+		//		logger.Error("Panic info is:%v",err)
 		//	}
 		//}()
 		context.Next()

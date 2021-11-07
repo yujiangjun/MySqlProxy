@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"mySqlProxy/global"
+	"mySqlProxy/rest/handler"
 	"net/http"
 	"time"
 )
@@ -10,6 +11,9 @@ import (
 func main() {
 	router := InitRouter(gin.Default())
 	global.NewGlobal()
+
+	//从数据库加载链接
+	handler.InitLoadingConnection2Redis()
 
 	InitServer(":9999",router).ListenAndServe().Error()
 }
