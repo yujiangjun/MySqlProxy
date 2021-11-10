@@ -11,7 +11,8 @@ import (
 
 // 日志记录到文件
 func ToFile() gin.HandlerFunc {
-	logFilePath,_ :=os.Getwd()
+	fmt.Println("测试日志。。。")
+	logFilePath, _ := os.Getwd()
 	logFileName := "sql_proxy.logger"
 	//日志文件
 	fileName := path.Join(logFilePath, logFileName)
@@ -55,16 +56,19 @@ func ToFile() gin.HandlerFunc {
 		)
 	}
 }
+
 // 日志记录到 MongoDB
 func LoggerToMongo() gin.HandlerFunc {
 	return func(c *gin.Context) {
 	}
 }
+
 // 日志记录到 ES
 func LoggerToES() gin.HandlerFunc {
 	return func(c *gin.Context) {
 	}
 }
+
 // 日志记录到 MQ
 func LoggerToMQ() gin.HandlerFunc {
 	return func(c *gin.Context) {

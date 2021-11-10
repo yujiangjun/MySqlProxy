@@ -15,12 +15,13 @@ func InitRouter(engine *gin.Engine) *gin.Engine {
 		log.Info("this is a middleware")
 	})
 	group := engine.Group("/")
-	group.GET("/getTable",handler.GetContext)
-	group.GET("/getTables",handler.GetTables)
-	group.GET("/login",handler.Login)
-	group.POST("/ping",handler.DataBasePing)
-	group.POST("/createConn",handler.CreateConnect)
-	group.GET("/getRedisCache",handler.GetRedisCache)
+	group.GET("/getDbs", handler.GetDbs)
+	group.GET("/getTable", handler.GetContext)
+	group.GET("/getTables", handler.GetTables)
+	group.GET("/login", handler.Login)
+	group.POST("/ping", handler.DataBasePing)
+	group.POST("/createConn", handler.CreateConnect)
+	group.GET("/getRedisCache", handler.GetRedisCache)
 
 	return engine
 }
