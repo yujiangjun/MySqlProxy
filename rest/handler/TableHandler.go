@@ -18,43 +18,137 @@ import (
 
 var connectionMaps = make(map[int]*gorm.DB)
 
-func GetContext(context *gin.Context) {
+func GetFields(context *gin.Context) {
 	databaseId, ok := context.GetQuery("databaseId")
 	if !ok {
-		log.Info("缺少tableName")
+		log.Info("未指定databaseId")
+		context.JSON(http.StatusOK,gin.H{
+			"code":"500",
+			"msg":"未指定databaseId",
+		})
+		return
+	}
+	schema, ok := context.GetQuery("schema")
+	if !ok {
+		log.Info("未指定schema")
+		context.JSON(http.StatusOK,gin.H{
+			"code":"500",
+			"msg":"未指定schema",
+		})
+		return
+	}
+	table, ok := context.GetQuery("table")
+	if !ok {
+		log.Info("未指定table")
+		context.JSON(http.StatusOK,gin.H{
+			"code":"500",
+			"msg":"未指定table",
+		})
 		return
 	}
 	log.Info("databaseId:%s", databaseId)
 	id, _ := strconv.Atoi(databaseId)
 	log.Info(connectionMaps[id])
-	var tables []map[string]interface{}
-	err := connectionMaps[id].Raw("SELECT COLUMN_NAME fName,column_comment fDesc,DATA_TYPE dataType, IS_NULLABLE isNull,IFNULL(CHARACTER_MAXIMUM_LENGTH,0) sLength FROM information_schema.columns ").Scan(&tables)
+	var fields []map[string]interface{}
+	err := connectionMaps[id].Raw("SELECT COLUMN_NAME fName,column_comment fDesc,DATA_TYPE dataType, IS_NULLABLE isNull,IFNULL(CHARACTER_MAXIMUM_LENGTH,0) sLength FROM information_schema.columns where TABLE_SCHEMA=? and TABLE_NAME=?",schema,table).Scan(&fields)
 	if err != nil {
-		log.Error("查询失败", err)
+		log.Error("查询失败", err.Error)
 	}
-	context.JSON(http.StatusOK, tables)
+	context.JSON(http.StatusOK, gin.H{
+		"code":200,
+		"msg":"success",
+		"data":fields,
+	})
 }
 
 func GetTables(ctx *gin.Context) {
 	databaseId, ok := ctx.GetQuery("databaseId")
 	if !ok {
-		log.Error("为获取到参数schema")
+		log.Error("未指定数据库")
 		return
 	}
+	schema, ok := ctx.GetQuery("schema")
+
+	if !ok {
+		log.Error("未指定schema")
+		return
+	}
+
 	id, _ := strconv.Atoi(databaseId)
 
-	//var tables *[]jdbc.Tables
-	//maps :=[...]map[string]interface{}
 	conn := connectionMaps[id]
 	log.Info("链接信息", conn)
 	var tables []map[string]interface{}
-	err := connectionMaps[id].Raw("select TABLE_CATALOG,TABLE_SCHEMA,TABLE_NAME,TABLE_TYPE,ENGINE,VERSION,ROW_FORMAT,TABLE_ROWS,DATA_LENGTH,CREATE_TIME,UPDATE_TIME,TABLE_COLLATION,TABLE_COMMENT from information_schema.TABLES").Scan(&tables)
-	//err := connectionMaps[id].Raw("select TABLE_CATALOG,TABLE_SCHEMA,TABLE_NAME from information_schema.TABLES").Scan(&tables)
+	err := conn.Raw("select TABLE_CATALOG,TABLE_SCHEMA,TABLE_NAME,TABLE_TYPE,ENGINE,VERSION,ROW_FORMAT,TABLE_ROWS,DATA_LENGTH,CREATE_TIME,UPDATE_TIME,TABLE_COLLATION,TABLE_COMMENT from information_schema.TABLES where TABLE_SCHEMA=?",schema).Scan(&tables)
 	if err != nil {
-		log.Error("查询发生异常.", err)
+		log.Error("查询发生异常.", err.Error)
 	}
-	ctx.JSON(http.StatusOK, tables)
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":200,
+		"msg":"success",
+		"data":tables,
+	})
 }
+
+func GetSchemas(ctx *gin.Context) {
+	databaseId, ok := ctx.GetQuery("databaseId")
+	if !ok {
+		log.Error("databaseId 不能为空")
+		ctx.JSON(http.StatusOK,gin.H{
+			"code":500,
+			"msg":"未指定databaseId",
+		})
+		return
+	}
+	id, _ := strconv.Atoi(databaseId)
+	db := connectionMaps[id]
+	var schemas []map[string]interface{}
+	err := db.Raw("select CATALOG_NAME,SCHEMA_NAME,DEFAULT_CHARACTER_SET_NAME,DEFAULT_COLLATION_NAME from information_schema.SCHEMATA").Scan(&schemas)
+	if err!=nil {
+		log.Error("查询发生异常.cause:",err)
+	}
+	ctx.JSON(http.StatusOK,gin.H{
+		"code":200,
+		"msg":"success",
+		"data":schemas,
+	})
+}
+
+func GetSchema(ctx *gin.Context) {
+	databaseId, ok := ctx.GetQuery("databaseId")
+	if !ok {
+		log.Error("databaseId 不能为空")
+		ctx.JSON(http.StatusOK,gin.H{
+			"code":500,
+			"msg":"databaseId 不能为空",
+		})
+	}
+	schema, ok := ctx.GetQuery("schema")
+	if !ok {
+		log.Error("schema不能为空")
+		ctx.JSON(http.StatusOK,gin.H{
+			"code":500,
+			"msg":"schema不能为空",
+		})
+	}
+
+	id, _ := strconv.Atoi(databaseId)
+	db := connectionMaps[id]
+	schemaInfo:=make(map[string]interface{})
+	err := db.Raw("select * from information_schema.SCHEMATA where SCHEMA_NAME=?", schema).Scan(&schemaInfo)
+	if err!=nil {
+		log.Error("查询发生异常")
+	}
+	ctx.JSON(http.StatusOK,gin.H{
+		"code":200,
+		"msg":"success",
+		"data":schemaInfo,
+	})
+}
+
+
+
+
 
 func Login(ctx *gin.Context) {
 	userName := ctx.Query("userName")
@@ -178,7 +272,7 @@ func CreateConnect(ctx *gin.Context) {
 func GetRedisCache(ctx *gin.Context) {
 	redis := global.GetGlobal().RedisConnect
 
-	result, err := redis.Get(context.Background(), "datasource*").Result()
+	result, err := redis.Get(context.Background(), "datasource_1").Result()
 	if err != nil {
 		log.Error("获取缓存数据失败", err)
 	}
@@ -202,6 +296,7 @@ func InitLoadingConnection2Redis() {
 			Url:      value.Url,
 		}.GetConnection()
 		json, _ := json.Marshal(value)
+		log.Info("加载到redis中:",value)
 		err := redisDb.Set(context.Background(), fmt.Sprintf("datasource_%d", value.Id), json, 0).Err()
 		if err != nil {
 			log.Error("存入缓存缓存错误", err)
