@@ -27,6 +27,9 @@ func InitRouter(engine *gin.Engine) *gin.Engine {
 	group.POST("/ping", handler.DataBasePing)
 	group.POST("/createConn", handler.CreateConnect)
 	group.GET("/getRedisCache", handler.GetRedisCache)
+	group.GET("/getTableInfo",handler.GetTableDesc)
+	group.GET("/getTableColumnInfo",handler.GetColumnInfo)
+	group.POST("/createTab",handler.CreateTable)
 
 	return engine
 }

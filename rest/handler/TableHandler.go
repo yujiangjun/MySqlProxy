@@ -18,6 +18,11 @@ import (
 
 var connectionMaps = make(map[int]*gorm.DB)
 
+func GetConnectById(id int) *gorm.DB {
+	db := connectionMaps[id]
+	return db
+}
+
 func GetFields(context *gin.Context) {
 	databaseId, ok := context.GetQuery("databaseId")
 	if !ok {
@@ -51,7 +56,7 @@ func GetFields(context *gin.Context) {
 	log.Info(connectionMaps[id])
 	var fields []map[string]interface{}
 	err := connectionMaps[id].Raw("SELECT COLUMN_NAME fName,column_comment fDesc,DATA_TYPE dataType, IS_NULLABLE isNull,IFNULL(CHARACTER_MAXIMUM_LENGTH,0) sLength FROM information_schema.columns where TABLE_SCHEMA=? and TABLE_NAME=?",schema,table).Scan(&fields)
-	if err != nil {
+	if err.Error != nil {
 		log.Error("查询失败", err.Error)
 	}
 	context.JSON(http.StatusOK, gin.H{
@@ -79,9 +84,9 @@ func GetTables(ctx *gin.Context) {
 	conn := connectionMaps[id]
 	log.Info("链接信息", conn)
 	var tables []map[string]interface{}
-	err := conn.Raw("select TABLE_CATALOG,TABLE_SCHEMA,TABLE_NAME,TABLE_TYPE,ENGINE,VERSION,ROW_FORMAT,TABLE_ROWS,DATA_LENGTH,CREATE_TIME,UPDATE_TIME,TABLE_COLLATION,TABLE_COMMENT from information_schema.TABLES where TABLE_SCHEMA=?",schema).Scan(&tables)
-	if err != nil {
-		log.Error("查询发生异常.", err.Error)
+	result := conn.Raw("select TABLE_CATALOG,TABLE_SCHEMA,TABLE_NAME,TABLE_TYPE,ENGINE,VERSION,ROW_FORMAT,TABLE_ROWS,DATA_LENGTH,CREATE_TIME,UPDATE_TIME,TABLE_COLLATION,TABLE_COMMENT from information_schema.TABLES where TABLE_SCHEMA=?",schema).Scan(&tables)
+	if result.Error != nil {
+		log.Error("查询发生异常.", result.Error)
 	}
 	ctx.JSON(http.StatusOK, gin.H{
 		"code":200,
@@ -318,5 +323,30 @@ func GetDbs(ctx *gin.Context) {
 		"code": 200,
 		"msg":  "ok",
 		"data": conns,
+	})
+}
+
+type CreateTabReq struct {
+	DatabaseId int `json:"databaseId"`
+	CreateSql string `json:"createSql"`
+}
+func CreateTable(ctx *gin.Context) {
+	var req CreateTabReq
+	ctx.ShouldBindJSON(&req)
+	log.Info("请求参数：",req)
+
+	db := connectionMaps[req.DatabaseId]
+	result := db.Exec(req.CreateSql)
+	if result.Error!=nil {
+		log.Error("创建表发生错误:",result.Error)
+		ctx.JSON(http.StatusOK,gin.H{
+			"code":500,
+			"msg":"创建表发生错误",
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK,gin.H{
+		"code":200,
+		"msg":fmt.Sprintf("success.影响行数:%d",result.RowsAffected),
 	})
 }
