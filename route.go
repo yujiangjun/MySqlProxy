@@ -30,6 +30,7 @@ func InitRouter(engine *gin.Engine) *gin.Engine {
 	group.GET("/getTableInfo",handler.GetTableDesc)
 	group.GET("/getTableColumnInfo",handler.GetColumnInfo)
 	group.POST("/createTab",handler.CreateTable)
+	group.POST("/insertDataForTal",handler.InsertDataForTab)
 
 	return engine
 }

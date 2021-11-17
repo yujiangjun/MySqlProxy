@@ -350,3 +350,24 @@ func CreateTable(ctx *gin.Context) {
 		"msg":fmt.Sprintf("success.影响行数:%d",result.RowsAffected),
 	})
 }
+
+
+func InsertDataForTab(ctx *gin.Context) {
+	var req dto.InsertDataForTab
+	ctx.ShouldBindJSON(&req)
+	log.Info("参数:",req)
+	db := connectionMaps[req.DatabaseId]
+	result:= db.Exec(req.InsertSql)
+	if result.Error!=nil {
+		log.Error("插入数据发生错误:",result.Error)
+		ctx.JSON(http.StatusOK,gin.H{
+			"code":200,
+			"msg":"success",
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK,gin.H{
+		"code":200,
+		"msg":fmt.Sprintf("success.影响行数:%d",result.RowsAffected),
+	})
+}
