@@ -4,31 +4,29 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"mySqlProxy/config"
 	"mySqlProxy/jdbc/dto"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func GetTableDesc(ctx *gin.Context) {
 	databaseId, ok := ctx.GetQuery("databaseId")
 	if !ok {
 		log.Error("databaseId不能为空")
-		ctx.JSON(http.StatusOK,gin.H{
-			"code":500,
-			"msg":"databaseId不能为空",
-		})
+		ctx.JSON(http.StatusOK,config.Error("databaseId不能为空"))
 	}
 	schema, ok := ctx.GetQuery("schema")
 	if !ok {
 		log.Error("schema不能为空")
-		ctx.JSON(http.StatusOK,gin.H{
-			"code":500,
-			"msg":"schema不能为空",
-		})
+		ctx.JSON(http.StatusOK,config.Error("schema不能为空"))
 	}
 	table, ok := ctx.GetQuery("table")
 	if !ok {
-		log.Error("stable不能为空")
+		log.Error("table不能为空")
+		ctx.JSON(http.StatusOK,config.Error("table不能为空"))
+		return
 	}
 	id, _ := strconv.Atoi(databaseId)
 	db := GetConnectById(id)
@@ -39,11 +37,7 @@ func GetTableDesc(ctx *gin.Context) {
 	if err.Error != nil {
 		log.Error("查询异常",err.Error)
 	}
-	ctx.JSON(http.StatusOK,gin.H{
-		"code":200,
-		"msg":"success",
-		"data":tableInfo,
-	})
+	ctx.JSON(http.StatusOK,config.Success(tableInfo))
 }
 
 type GetInfoReq struct {
@@ -62,41 +56,34 @@ func GetColumnInfo(ctx *gin.Context) {
 	result := db.Raw(sql, req.Schema, req.Table, req.Column).Scan(&columnInfo)
 	if  result.Error!=nil{
 		log.Error("查询发生异常",result.Error)
-		ctx.JSON(http.StatusOK,gin.H{
-			"code":500,
-			"msg":"查询异常"+result.Error.Error(),
-		})
+		ctx.JSON(http.StatusOK,config.Error("查询异常"+result.Error.Error()))
 		return
 	}
-	ctx.JSON(http.StatusOK,gin.H{
-		"code":200,
-		"msg":"success",
-		"data":columnInfo,
-	})
+	ctx.JSON(http.StatusOK,config.Success(columnInfo))
 }
 
 func AlertTab(ctx *gin.Context) {
 	var req dto.AlertTab
 	ctx.ShouldBindJSON(&req)
-	sql := fmt.Sprintf("alert table %s.%s add ", req.Schema, req.Table)
+	addSql:=""
 	for _, column := range req.Columns {
-		addStr := fmt.Sprintf("%s %s default %s comment %s, ", column.ColumnName, column.ColumnType, column.Default, column.Comment)
-		sql+=addStr
+		addSql += fmt.Sprintf("`%s` %s default %s comment '%s', ", column.ColumnName, column.ColumnType, column.Default, column.Comment)
 	}
-	log.Info("sql:%s",sql)
+	index := strings.LastIndex(addSql, ",")
+	if index !=-1 {
+		addSql=addSql[:index]
+	}
+	sql := fmt.Sprintf("alter table %s.%s add (%s)", req.Schema, req.Table,addSql)
+
+	log.Info("sql:",sql)
 
 	db := connectionMaps[req.DatabaseId]
 	result := db.Exec(sql)
 	if result.Error!=nil {
 		log.Error("修改表发生错误:",result.Error)
-		ctx.JSON(http.StatusOK,gin.H{
-			"code":500,
-			"msg":fmt.Sprintf("修改表发生错误:%s",result.Error.Error()),
-		})
+		ctx.JSON(http.StatusOK,config.Error(fmt.Sprintf("修改表发生错误:%s",result.Error.Error())))
 		return
 	}
-	ctx.JSON(http.StatusOK,gin.H{
-		"code":200,
-		"msg":"success",
-	})
+	ctx.JSON(http.StatusOK,config.Success(sql))
+
 }
