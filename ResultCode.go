@@ -1,4 +1,4 @@
-package const1
+package main
 
 var (
 	OK  = NewResponse(200, "ok") // 通用成功
