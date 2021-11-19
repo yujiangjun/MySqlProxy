@@ -31,6 +31,6 @@ func InitRouter(engine *gin.Engine) *gin.Engine {
 	group.GET("/getTableColumnInfo",handler.GetColumnInfo)
 	group.POST("/createTab",handler.CreateTable)
 	group.POST("/insertDataForTal",handler.InsertDataForTab)
-
+	group.POST("/alertTab",handler.AlertTab)
 	return engine
 }

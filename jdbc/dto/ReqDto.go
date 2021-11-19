@@ -6,3 +6,15 @@ type InsertDataForTab struct {
 	Schema string `json:"schema"`
 	InsertSql string `json:"insertSql"`
 }
+
+type AlertTab struct {
+	DatabaseId int    `json:"databaseId"`
+	Schema     string `json:"schema"`
+	Table      string `json:"table"`
+	Columns    []struct {
+		ColumnName string `json:"columnName"`
+		ColumnType string `json:"columnType"`
+		Default string `json:"default"`
+		Comment string `json:"comment"`
+	} `json:"columns"`
+}

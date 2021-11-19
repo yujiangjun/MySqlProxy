@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"mySqlProxy/jdbc/dto"
 	"net/http"
 	"strconv"
 )
@@ -70,5 +72,31 @@ func GetColumnInfo(ctx *gin.Context) {
 		"code":200,
 		"msg":"success",
 		"data":columnInfo,
+	})
+}
+
+func AlertTab(ctx *gin.Context) {
+	var req dto.AlertTab
+	ctx.ShouldBindJSON(&req)
+	sql := fmt.Sprintf("alert table %s.%s add ", req.Schema, req.Table)
+	for _, column := range req.Columns {
+		addStr := fmt.Sprintf("%s %s default %s comment %s, ", column.ColumnName, column.ColumnType, column.Default, column.Comment)
+		sql+=addStr
+	}
+	log.Info("sql:%s",sql)
+
+	db := connectionMaps[req.DatabaseId]
+	result := db.Exec(sql)
+	if result.Error!=nil {
+		log.Error("修改表发生错误:",result.Error)
+		ctx.JSON(http.StatusOK,gin.H{
+			"code":500,
+			"msg":fmt.Sprintf("修改表发生错误:%s",result.Error.Error()),
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK,gin.H{
+		"code":200,
+		"msg":"success",
 	})
 }
