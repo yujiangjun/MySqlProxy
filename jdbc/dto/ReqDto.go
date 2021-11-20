@@ -18,3 +18,16 @@ type AlertTab struct {
 		Comment string `json:"comment"`
 	} `json:"columns"`
 }
+
+//type BaseTableReq struct {
+//	DatabaseId int `json:"databaseId"`
+//	Schema string `json:"schema"`
+//	Table string `json:"table"`
+//}
+
+type DeleteColForTabReq struct {
+	DatabaseId *int `json:"databaseId"`
+	Schema *string `json:"schema"`
+	Table *string `json:"table"`
+	Columns *[]string `json:"columns"`
+}

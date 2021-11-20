@@ -85,5 +85,17 @@ func AlertTab(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK,config.Success(sql))
+}
 
+func DeleteCols(ctx *gin.Context) {
+	var req dto.DeleteColForTabReq
+	ctx.ShouldBindJSON(&req)
+	log.Info("接收参数:",req)
+}
+
+func PingTest(ctx *gin.Context) {
+	id, _ := ctx.GetQuery("id")
+	if id == "1" {
+		panic("id不能是1")
+	}
 }

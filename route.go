@@ -5,6 +5,7 @@ import (
 	"github.com/mattn/go-colorable"
 	log "github.com/sirupsen/logrus"
 	"mySqlProxy/config"
+	"mySqlProxy/global"
 	"mySqlProxy/rest/handler"
 )
 
@@ -12,6 +13,7 @@ func InitRouter(engine *gin.Engine) *gin.Engine {
 	gin.ForceConsoleColor()
 
 	gin.DefaultWriter= colorable.NewColorableStdout()
+	engine.Use(global.Recover)
 	engine.Use(config.Cors())
 	//engine.Use(logger.ToFile())
 	engine.Use(func(context *gin.Context) {
@@ -32,5 +34,8 @@ func InitRouter(engine *gin.Engine) *gin.Engine {
 	group.POST("/createTab",handler.CreateTable)
 	group.POST("/insertDataForTal",handler.InsertDataForTab)
 	group.POST("/alertTab",handler.AlertTab)
+	group.POST("/deleteColsTab",handler.DeleteCols)
+
+	group.GET("/testPing",handler.PingTest)
 	return engine
 }
