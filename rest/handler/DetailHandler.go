@@ -62,6 +62,7 @@ func GetColumnInfo(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK,config.Success(columnInfo))
 }
 
+//AlertTab 添加字段
 func AlertTab(ctx *gin.Context) {
 	var req dto.AlertTab
 	ctx.ShouldBindJSON(&req)
@@ -91,11 +92,35 @@ func DeleteCols(ctx *gin.Context) {
 	var req dto.DeleteColForTabReq
 	ctx.ShouldBindJSON(&req)
 	log.Info("接收参数:",req)
+	deleteSql:=""
+	for _, columnName := range *req.Columns {
+		deleteSql+=fmt.Sprintf("DROP %s,",columnName)
+	}
+	sql:=fmt.Sprintf("alter table %s.%s %s",*req.Schema,*req.Table,deleteSql)
+	db := connectionMaps[*req.DatabaseId]
+	sql=sql[:strings.LastIndex(sql,",")]
+	result := db.Exec(sql)
+	if result.Error!=nil {
+		panic(result.Error)
+		return
+	}
+	ctx.JSON(http.StatusOK,config.Success(nil))
 }
 
-func PingTest(ctx *gin.Context) {
-	id, _ := ctx.GetQuery("id")
-	if id == "1" {
-		panic("id不能是1")
+//ChangeTabCols 更改字段
+func ChangeTabCols(ctx *gin.Context) {
+	var req dto.ChangeColReq
+	ctx.ShouldBindJSON(&req)
+	log.Info("接受参数:",req)
+
+	db := connectionMaps[req.DatabaseId]
+
+	for _, column := range req.Columns {
+		sql := fmt.Sprintf("alter table %s.%s change %s %s %s", req.Schema, req.Table, column.OriColName, column.NewColName, column.ColumnType)
+		log.Info("sql:",sql)
+		if err:=db.Exec(sql).Error;err!=nil {
+			panic(err)
+		}
 	}
+	ctx.JSON(http.StatusOK,config.Success(nil))
 }

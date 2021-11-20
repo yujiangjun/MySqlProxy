@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"mySqlProxy/config"
+	"mySqlProxy/const"
 	"mySqlProxy/global"
 	"mySqlProxy/jdbc"
 	"mySqlProxy/jdbc/dto"
@@ -276,7 +277,7 @@ func CreateTable(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK,config.Success(fmt.Sprintf("success.影响行数:%d",result.RowsAffected)))
 }
 
-
+//InsertDataForTab 插入数据
 func InsertDataForTab(ctx *gin.Context) {
 	var req dto.InsertDataForTab
 	ctx.ShouldBindJSON(&req)
@@ -289,4 +290,33 @@ func InsertDataForTab(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK,config.Success("插入数据发生错误:"+fmt.Sprintf("success.影响行数:%d",result.RowsAffected)))
+}
+
+//ChangeTabName 修改表名
+func ChangeTabName(ctx *gin.Context) {
+	var req dto.ChangeTabNameReq
+	ctx.ShouldBindJSON(&req)
+	log.Info("接受参数:",req)
+	db := connectionMaps[req.DatabaseId]
+	sql := fmt.Sprintf("ALTER TABLE %s.%s RENAME AS %s", req.Schema, req.OriTab, req.NewTab)
+	if err:=db.Exec(sql).Error;err!=nil {
+		panic(err)
+	}
+	ctx.JSON(http.StatusOK,config.Success(nil))
+}
+
+func DropTab(ctx *gin.Context) {
+	var req dto.DropTabReq
+	ctx.ShouldBindJSON(&req)
+	log.Info("接受参数:",req)
+	sql := fmt.Sprintf("drop table %s.%s", req.Schema, req.Table)
+	db := connectionMaps[req.DatabaseId]
+	if result := db.Exec(sql); result.Error != nil {
+		panic(result.Error)
+	}
+	ctx.JSON(http.StatusOK,config.Success(nil))
+}
+
+func GetDataTypeList(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK,config.Success(_const.DataTypeList()))
 }
