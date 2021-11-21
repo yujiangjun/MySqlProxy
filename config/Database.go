@@ -27,8 +27,8 @@ var config *Config
 func InitConfig() *Config{
 	viper.SetConfigType("yaml")
 	path, _ := os.Getwd()
-	log.Info("路径:",path+"\\config\\jdbc.yml")
-	viper.SetConfigFile(path+"\\config\\jdbc.yml")
+	log.Info("路径:",path+"/config/jdbc.yml")
+	viper.SetConfigFile(path+"/config/jdbc.yml")
 
 	err := viper.ReadInConfig()
 	if err!=nil {
