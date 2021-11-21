@@ -38,6 +38,7 @@ func InitRouter(engine *gin.Engine) *gin.Engine {
 	group.POST("/deleteColsTab",handler.DeleteCols)
 	group.POST("/changeTabName",handler.ChangeTabName)
 	group.POST("/dropTab",handler.DropTab)
+	group.GET("/getFullDataTab",handler.GetFullDataTab)
 
 	group.GET("/getDataType",handler.GetDataTypeList)
 	group.POST("/execSql",handler.ExecSql)

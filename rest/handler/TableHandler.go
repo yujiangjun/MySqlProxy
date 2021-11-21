@@ -271,7 +271,7 @@ func CreateTable(ctx *gin.Context) {
 	result := db.Exec(req.CreateSql)
 	if result.Error!=nil {
 		log.Error("创建表发生错误:",result.Error)
-		ctx.JSON(http.StatusOK,config.Error("创建表发生错误"))
+		panic(result.Error)
 		return
 	}
 	ctx.JSON(http.StatusOK,config.Success(fmt.Sprintf("success.影响行数:%d",result.RowsAffected)))
@@ -319,4 +319,55 @@ func DropTab(ctx *gin.Context) {
 
 func GetDataTypeList(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK,config.Success(_const.DataTypeList()))
+}
+
+func GetFullDataTab(ctx *gin.Context) {
+	databaseId, ok := ctx.GetQuery("databaseId")
+	if !ok {
+		panic("缺少参数databaseId")
+	}
+	schema, ok := ctx.GetQuery("schema")
+	if !ok {
+		panic("缺少参数schema");
+	}
+	table, ok := ctx.GetQuery("table")
+	if !ok {
+		panic("缺少参数table")
+	}
+	sql := fmt.Sprintf("select * from %s.%s", schema, table)
+	id, _ := strconv.Atoi(databaseId)
+
+	db := connectionMaps[id]
+
+	var results []map[string]interface{}
+
+	exec := db.Raw(sql).Scan(&results)
+	if exec.Error!=nil {
+		panic(exec.Error)
+	}
+
+	colInfoSql:="select * from information_schema.COLUMNS where TABLE_SCHEMA=? and TABLE_NAME=?"
+	var columnInfo  []map[string]interface{}
+
+	exec = db.Raw(colInfoSql, schema,table).Scan(&columnInfo)
+
+	if exec.Error!=nil {
+		panic(exec.Error)
+	}
+	//var columnKeys [len(columnInfo)]ColumnType
+	columnKeys := make([]dto.ColumnType, len(columnInfo))
+	for i := 0; i < len(columnInfo); i++ {
+		columnKeys[i]=dto.ColumnType{
+			Title:     columnInfo[i]["COLUMN_NAME"].(string),
+			DataIndex: columnInfo[i]["COLUMN_NAME"].(string),
+			Key:       columnInfo[i]["COLUMN_NAME"].(string),
+		}
+	}
+	ctx.JSON(http.StatusOK,config.Success(struct {
+		ColumnKey []dto.ColumnType             `json:"columnKey"`
+		Result    []map[string]interface{} `json:"result"`
+	}{
+		ColumnKey: columnKeys,
+		Result: results,
+	}))
 }

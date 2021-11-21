@@ -66,3 +66,9 @@ type ExecSql struct {
 	Schema     string `json:"schema" binding:"required"`
 	Sql        string `json:"sql" binding:"required"`
 }
+
+type ColumnType struct {
+	Title string `json:"title"`
+	DataIndex string `json:"dataIndex"`
+	Key string `json:"key"`
+}
