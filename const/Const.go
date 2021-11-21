@@ -21,7 +21,6 @@ func DataTypeList() []string {
 		"TIMESTAMP",
 		"CHAR",
 		"VARCHAR",
-		"VARCHAR",
 		"TINYTEXT",
 		"BLOB",
 		"TEXT",
